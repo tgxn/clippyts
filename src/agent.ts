@@ -432,6 +432,10 @@ export default class Agent {
         this._balloon.hide(true);
         this._offset = this._calculateClickOffset(e);
 
+        // initialize target position to current element position to prevent jump
+        this._targetX = parseInt(this._el.style.left) || 0;
+        this._targetY = parseInt(this._el.style.top) || 0;
+
         this._moveHandle = this._dragMove.bind(this);
         this._upHandle = this._finishDrag.bind(this);
 
