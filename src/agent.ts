@@ -9,6 +9,8 @@ export interface AgentOptions {
     selector?: string;
 }
 
+type ClickEventCallback = (type: 'click' | 'dblclick', event: MouseEvent) => void;
+
 export default class Agent {
     private _queue: Queue;
     private readonly _el: HTMLElement;
@@ -21,10 +23,15 @@ export default class Agent {
     private _targetX?: number;
     private _targetY?: number;
     private _moveHandle?: ((e: MouseEvent) => void); 
-    private _upHandle?: ((e: MouseEvent) => void); 
+    private _upHandle?: ((e: MouseEvent) => void);
+    private _clickEventCallback?: ClickEventCallback;
 
     setVolume(volume: number) {
         this._animator.setVolume(volume);
+    }
+
+    setClickEventCallback(callback?: ClickEventCallback) {
+        this._clickEventCallback = callback;
     }
 
     constructor (options: AgentOptions) {
@@ -386,6 +393,7 @@ export default class Agent {
     }
 
     private _onDoubleClick () {
+        this._clickEventCallback?.('dblclick', new MouseEvent('dblclick'));
         if (!this.play('ClickedOn')) {
             this.animate();
         }
@@ -424,6 +432,7 @@ export default class Agent {
 
     private _onMouseDown (e: MouseEvent) {
         e.preventDefault();
+        this._clickEventCallback?.('click', e);
         this._startDrag(e);
     }
 
