@@ -23,6 +23,10 @@ export default class Agent {
     private _moveHandle?: ((e: MouseEvent) => void); 
     private _upHandle?: ((e: MouseEvent) => void); 
 
+    setVolume(volume: number) {
+        this._animator.setVolume(volume);
+    }
+
     constructor (options: AgentOptions) {
         const {
             agent,
