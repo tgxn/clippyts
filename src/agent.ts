@@ -9,8 +9,6 @@ export interface AgentOptions {
     selector?: string;
 }
 
-type ClickEventCallback = (type: 'click' | 'dblclick', event: MouseEvent) => void;
-
 export default class Agent {
     private _queue: Queue;
     private readonly _el: HTMLElement;
@@ -24,14 +22,12 @@ export default class Agent {
     private _targetY?: number;
     private _moveHandle?: ((e: MouseEvent) => void); 
     private _upHandle?: ((e: MouseEvent) => void);
-    private _clickEventCallback?: ClickEventCallback;
+
+    // event listeners registered via `addEventListener`/`removeEventListener`
+    private _listeners: Record<string, Set<Function>> = {};
 
     setVolume(volume: number) {
         this._animator.setVolume(volume);
-    }
-
-    setClickEventCallback(callback?: ClickEventCallback) {
-        this._clickEventCallback = callback;
     }
 
     constructor (options: AgentOptions) {
@@ -389,14 +385,51 @@ export default class Agent {
     private _setupEvents () {
         window.addEventListener('resize', this.reposition.bind(this));
         this._el.addEventListener('mousedown', this._onMouseDown.bind(this));
-        this._el.addEventListener('dblclick', this._onDoubleClick.bind(this));
+        // forward native click/dblclick events to registered listeners
+        this._el.addEventListener('click', (e: MouseEvent) => this._dispatchEvent('click', e));
+        this._el.addEventListener('dblclick', (e: MouseEvent) => this._onDoubleClick(e));
     }
 
-    private _onDoubleClick () {
-        this._clickEventCallback?.('dblclick', new MouseEvent('dblclick'));
+    private _onDoubleClick (e?: MouseEvent) {
+        // dispatch to any registered listeners
+        this._dispatchEvent('dblclick', e);
+
         if (!this.play('ClickedOn')) {
             this.animate();
         }
+    }
+
+    /**
+     * add a listener for agent events (e.g. `click`, `dblclick`, custom events)
+     */
+    addEventListener (type: string, listener: (event?: any) => void) {
+        if (!this._listeners[type]) this._listeners[type] = new Set();
+        this._listeners[type].add(listener);
+    }
+
+    /**
+     * remove a previously registered listener
+     */
+    removeEventListener (type: string, listener: (event?: any) => void) {
+        if (!this._listeners[type]) return;
+        this._listeners[type].delete(listener);
+        if (this._listeners[type].size === 0) delete this._listeners[type];
+    }
+
+    /**
+     * internal: invoke listeners for `type` with optional `event` argument
+     */
+    private _dispatchEvent (type: string, event?: any) {
+        const set = this._listeners[type];
+        if (!set) return;
+        set.forEach((fn) => {
+            try {
+                (fn as Function)(event);
+            } catch (err) {
+                // don't let listener errors break the agent
+                console.error('agent event listener error', err);
+            }
+        });
     }
 
     reposition () {
@@ -432,7 +465,6 @@ export default class Agent {
 
     private _onMouseDown (e: MouseEvent) {
         e.preventDefault();
-        this._clickEventCallback?.('click', e);
         this._startDrag(e);
     }
 
