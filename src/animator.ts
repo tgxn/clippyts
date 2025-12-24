@@ -17,6 +17,9 @@ export default class Animator {
     private _currentAnimation?: ClippyAnimation;
     private _loop?: number;
 
+    private _soundsVolume: number = 0;
+
+
     public currentAnimationName: string | undefined;
 
     constructor (el: HTMLElement, config: AgentWrapper, sounds: Array<string>) {
@@ -62,6 +65,17 @@ export default class Animator {
             r.push(n);
         }
         return r;
+    } 
+
+    setVolume (volume: number) {
+        if(this._soundsVolume === volume) return;
+        
+        for (let key in this._sounds) {
+            let audio = this._sounds[key];
+            audio.volume = volume / 100;
+        }
+        
+        this._soundsVolume = volume;
     }
 
     preloadSounds(sounds: Array<string>): void {
@@ -70,6 +84,7 @@ export default class Animator {
             let uri = sounds[i];
             if (!uri) continue;
             this._sounds[snd] = new Audio(uri);
+            this._sounds[snd].volume = this._soundsVolume / 100;
         }
     }
 
